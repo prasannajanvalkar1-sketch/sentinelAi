@@ -3,7 +3,9 @@ from .views import (
     UserRegistrationAPIView,
     PasswordResetRequestAPIView,
     PasswordResetConfirmAPIView,
-    EmailOTPVerifyAPIView
+    EmailOTPVerifyAPIView,
+    TelemetryIngestAPIView,
+    TelemetryFeedAPIView
 )
 
 urlpatterns = [
@@ -11,4 +13,6 @@ urlpatterns = [
     path('api/auth/forgot-password/request-otp/', PasswordResetRequestAPIView.as_view(), name='request-otp'),
     path('api/auth/forgot-password/verify-otp/', PasswordResetConfirmAPIView.as_view(), name='verify-otp'),
     path('api/auth/verify-otp/', EmailOTPVerifyAPIView.as_view(), name='verify-email-otp'),
+    path('api/telemetry/ingest/', TelemetryIngestAPIView.as_view(), name='telemetry-ingest'),
+    path('api/telemetry/feed/', TelemetryFeedAPIView.as_view(), name='telemetry-feed'),
 ]
