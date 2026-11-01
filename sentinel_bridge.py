@@ -25,7 +25,7 @@ import requests
 import datetime
 
 LOCAL_URL = "http://localhost:8000/api/telemetry/ingest/"
-NGROK_URL = "https://disown-moonlit-septum.ngrok-free.dev/api/telemetry/ingest/"
+CLOUD_URL = "https://sentinelai-backend-33dw.onrender.com/api/telemetry/ingest/"
 API_KEY = "sk_sentinel_live_938aB"
 
 HEADERS = {
@@ -41,7 +41,7 @@ def get_target_url():
             return LOCAL_URL
     except Exception:
         pass
-    return NGROK_URL
+    return CLOUD_URL
 
 def _send(payload):
     target_url = get_target_url()
@@ -197,7 +197,7 @@ def is_user_blocked(username):
     Returns: bool (True if blocked, False otherwise)
     """
     try:
-        backend_base = "http://localhost:8000" if get_target_url() == LOCAL_URL else NGROK_URL.replace("/api/telemetry/ingest/", "")
+        backend_base = "http://localhost:8000" if get_target_url() == LOCAL_URL else CLOUD_URL.replace("/api/telemetry/ingest/", "")
         r = requests.get(f"{backend_base}/api/telemetry/feed/", timeout=2)
         if r.status_code == 200:
             trainees = r.json().get("data", {}).get("trainees", [])

@@ -142,7 +142,7 @@ export default function SentinelSOCDashboard({ session, onLogout, onSwitchToPIS,
 
     const fetchTelemetry = async () => {
       try {
-        const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        const backendBase = import.meta.env.VITE_BACKEND_URL || 'https://sentinelai-backend-33dw.onrender.com';
         const response = await fetch(`${backendBase}/api/telemetry/feed/`);
         if (response.ok) {
           const data = await response.json();
@@ -190,7 +190,7 @@ export default function SentinelSOCDashboard({ session, onLogout, onSwitchToPIS,
     const username = String(rawUsername).replace(/\s*\(.*?\)\s*/g, '').trim();
 
     try {
-      const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendBase = import.meta.env.VITE_BACKEND_URL || 'https://sentinelai-backend-33dw.onrender.com';
       const res = await fetch(`${backendBase}/api/telemetry/block/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -261,7 +261,7 @@ export default function SentinelSOCDashboard({ session, onLogout, onSwitchToPIS,
   const handleSimulateSecurityAlert = async (type) => {
     const studentName = trainees.length > 0 ? trainees[0].name : "Rakesh";
     try {
-      const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendBase = import.meta.env.VITE_BACKEND_URL || 'https://sentinelai-backend-33dw.onrender.com';
       await fetch(`${backendBase}/api/telemetry/ingest/`, {
         method: 'POST',
         headers: { 

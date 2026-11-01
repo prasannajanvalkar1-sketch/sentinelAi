@@ -513,7 +513,7 @@ export default function SentinelAuth({ onLoginSuccess }) {
 
       // 2. Execute Backend API call if server running
       try {
-        const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        const backendBase = import.meta.env.VITE_BACKEND_URL || 'https://sentinelai-backend-33dw.onrender.com';
         await fetch(`${backendBase}/api/auth/forgot-password/request-otp/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -574,7 +574,7 @@ export default function SentinelAuth({ onLoginSuccess }) {
 
       // Execute Backend API call for verifying reset OTP
       try {
-        const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        const backendBase = import.meta.env.VITE_BACKEND_URL || 'https://sentinelai-backend-33dw.onrender.com';
         await fetch(`${backendBase}/api/auth/forgot-password/verify-otp/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
