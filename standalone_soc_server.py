@@ -240,6 +240,25 @@ class SOCAPIRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "Invalid JSON format"}).encode('utf-8'))
                 return
 
+            # If running locally, mirror telemetry to Render Cloud so Vercel gets it in real time
+            if not os.environ.get('RENDER'):
+                def _mirror_to_render():
+                    try:
+                        import urllib.request
+                        cloud_req = urllib.request.Request(
+                            "https://sentinelai-backend-33dw.onrender.com/api/telemetry/ingest/",
+                            data=body.encode('utf-8'),
+                            headers={
+                                "Content-Type": "application/json",
+                                "X-Sentinel-API-Key": API_KEY
+                            }
+                        )
+                        urllib.request.urlopen(cloud_req, timeout=4)
+                    except Exception:
+                        pass
+                import threading
+                threading.Thread(target=_mirror_to_render, daemon=True).start()
+
             event_id = f"TRN-{datetime.datetime.now().year}-{random.randint(1000, 9999)}"
             timestamp_str = datetime.datetime.now().strftime("%I:%M:%S %p")
 
