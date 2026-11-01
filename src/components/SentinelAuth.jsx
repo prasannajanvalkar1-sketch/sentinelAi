@@ -99,6 +99,13 @@ const DEFAULT_REGISTERED_USERS = [
     department: 'Security Operations (SOC)'
   },
   {
+    email: 'admin@sentinel.ai',
+    password: 'AdminSOC#2026',
+    role: 'admin',
+    name: 'Administrator',
+    department: 'Security Operations (SOC)'
+  },
+  {
     email: 'sarah.connor@sentinel.ai',
     password: 'Sentinel@1234',
     role: 'admin',
@@ -504,9 +511,10 @@ export default function SentinelAuth({ onLoginSuccess }) {
       // 1. Dispatch real Email via EmailJS service
       const emailSent = await sendOtpEmail(emailTrim, generatedOtp);
 
-      // 2. Execute Backend API call if Django server running
+      // 2. Execute Backend API call if server running
       try {
-        await fetch('http://localhost:8000/api/auth/forgot-password/request-otp/', {
+        const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        await fetch(`${backendBase}/api/auth/forgot-password/request-otp/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: emailTrim, otp: generatedOtp }),
@@ -566,7 +574,8 @@ export default function SentinelAuth({ onLoginSuccess }) {
 
       // Execute Backend API call for verifying reset OTP
       try {
-        await fetch('http://localhost:8000/api/auth/forgot-password/verify-otp/', {
+        const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        await fetch(`${backendBase}/api/auth/forgot-password/verify-otp/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -743,7 +752,8 @@ export default function SentinelAuth({ onLoginSuccess }) {
     }
 
     // SIGN IN VERIFICATION FLOW
-    const userMatch = currentUsers.find(u => u.email.toLowerCase() === enteredEmail);
+    const allUsers = [...DEFAULT_REGISTERED_USERS, ...(Array.isArray(currentUsers) ? currentUsers : [])];
+    const userMatch = allUsers.find(u => u.email.toLowerCase() === enteredEmail);
 
     if (!userMatch) {
       playCyberSound('error');

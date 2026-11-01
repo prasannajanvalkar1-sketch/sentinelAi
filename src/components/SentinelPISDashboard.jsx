@@ -41,7 +41,7 @@ import {
  * SentinelAI Psychological Immune System (PIS) - Cyber Defense Arena & Dashboard
  * Built with React, Framer Motion, Tailwind CSS v4, Lucide React, and Web Audio API haptics.
  */
-export default function SentinelPISDashboard({ onBackToAuth }) {
+export default function SentinelPISDashboard({ onBackToAuth, onSwitchToSOC }) {
   // 1. Core State
   const [cpisScore, setCpisScore] = useState(75);
   const [cpisHistory, setCpisHistory] = useState([65, 70, 68, 72, 75]);
@@ -484,6 +484,20 @@ https://sharepoint-cloud-docs.net/view?doc=99281`,
             >
               <Code2 className="w-3.5 h-3.5" />
               DRF API Logs
+            </button>
+          )}
+
+          {/* Switch to SOC Command */}
+          {onSwitchToSOC && (
+            <button
+              onClick={() => {
+                playCyberSound('click');
+                onSwitchToSOC();
+              }}
+              className="px-3 py-1.5 rounded-lg bg-indigo-950/90 border border-indigo-500/40 hover:bg-indigo-900 text-indigo-300 text-xs font-mono transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(99,102,241,0.2)]"
+            >
+              <Shield className="w-3.5 h-3.5 text-indigo-400" />
+              SOC Command
             </button>
           )}
 
