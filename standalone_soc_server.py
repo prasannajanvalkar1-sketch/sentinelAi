@@ -291,70 +291,87 @@ class SOCAPIRequestHandler(BaseHTTPRequestHandler):
 
             module_num = int(data.get('module_number') or data.get('module') or 1)
             video_watched = bool(data.get('video_watched', True))
-            quiz_score = float(data.get('quiz_score', 0.0))
+            quiz_score = float(data.get('quiz_score') or data.get('score') or data.get('quiz') or data.get('marks') or 0.0)
             status_val = data.get('status')
-            event_type = str(data.get('event') or data.get('event_type') or '').upper()
+            raw_event = str(data.get('event') or data.get('event_type') or '').upper()
+            action_text = str(data.get('action') or data.get('defense_action') or data.get('details') or '')
+
+            # Extract percentage from action text if quiz_score not explicitly given
+            if quiz_score == 0.0:
+                import re
+                score_match = re.search(r'(\d+(?:\.\d+)?)%', action_text)
+                if score_match:
+                    try:
+                        quiz_score = float(score_match.group(1))
+                    except Exception:
+                        pass
 
             # Detect Security Alerts: USB Inserted, Screenshot Captured, etc.
-            is_security_alert = (
-                event_type in ['SECURITY_ALERT', 'ALERT', 'USB', 'SCREENSHOT'] or
-                'usb' in str(data.get('alert_type', '')).lower() or
-                'usb' in str(data.get('vector', '')).lower() or
-                'usb' in str(data.get('details', '')).lower() or
-                'screenshot' in str(data.get('alert_type', '')).lower() or
-                'screenshot' in str(data.get('vector', '')).lower() or
-                'screenshot' in str(data.get('details', '')).lower() or
-                'screen' in str(data.get('alert_type', '')).lower()
-            )
+            is_usb = 'usb' in action_text.lower() or 'usb' in str(data.get('alert_type', '')).lower() or 'usb' in str(data.get('details', '')).lower()
+            is_screenshot = 'screenshot' in action_text.lower() or 'screen' in action_text.lower() or 'screenshot' in str(data.get('alert_type', '')).lower() or 'screenshot' in str(data.get('details', '')).lower()
+            is_security_alert = is_usb or is_screenshot or raw_event in ['SECURITY_ALERT', 'ALERT', 'USB', 'SCREENSHOT']
 
-            is_login_event = 'LOGIN' in event_type or 'login' in str(data.get('action', '')).lower() or 'login' in str(data.get('threat_type', '')).lower()
+            is_quiz = 'quiz' in action_text.lower() or 'quiz' in raw_event.lower() or ('score' in action_text.lower() and not is_security_alert)
+            is_video = ('video' in action_text.lower() or 'watched' in action_text.lower() or 'incomplete' in action_text.lower()) and not is_security_alert
+            is_login_event = ('login' in action_text.lower() or 'logged in' in action_text.lower()) and not (is_quiz or is_video or is_security_alert)
 
             alert_type = None
             if is_security_alert:
-                if 'usb' in str(data).lower():
+                if is_usb:
                     alert_type = "USB_DETECTED"
                     severity = "CRITICAL"
                     event_vector = f"🚨 USB Hardware Storage Detected: {student_name}"
-                    event_action = "Unauthorized USB Plugged In"
-                elif 'screen' in str(data).lower():
+                    event_action = action_text or "Unauthorized USB Plugged In"
+                elif is_screenshot:
                     alert_type = "SCREENSHOT_DETECTED"
                     severity = "HIGH"
                     event_vector = f"📸 Screenshot / Screen Capture Detected: {student_name}"
-                    event_action = "PrintScreen Capture Triggered"
+                    event_action = action_text or "PrintScreen Capture Triggered"
                 else:
                     alert_type = data.get('alert_type', 'SECURITY_ALERT')
                     severity = "HIGH"
-                    event_vector = f"⚠️ Security Alert: {data.get('details', 'Policy Violation')} ({student_name})"
-                    event_action = "Security Violation Dispatched"
+                    event_vector = f"⚠️ Security Alert: {action_text or 'Policy Violation'} ({student_name})"
+                    event_action = action_text or "Security Violation Dispatched"
                 
                 if not status_val:
                     status_val = existing.get('status', 'IN_PROGRESS') if existing else 'IN_PROGRESS'
+            elif is_quiz:
+                if quiz_score >= 60.0:
+                    status_val = "COMPLETED" if module_num >= 20 else "IN_PROGRESS"
+                    severity = "LOW"
+                    event_vector = f"Module {module_num} Quiz Passed: {quiz_score}% (Score >= 60%)"
+                    event_action = action_text or f"Passed Quiz ({quiz_score}%)"
+                else:
+                    status_val = "FAILED"
+                    severity = "HIGH"
+                    event_vector = f"Module {module_num} Quiz Failed: {quiz_score}% (< 60% Passing Mark)"
+                    event_action = action_text or f"Quiz Failed ({quiz_score}%)"
+            elif is_video:
+                if 'incomplete' in action_text.lower() or 'stuck' in action_text.lower() or not video_watched:
+                    status_val = "STUCK_VIDEO"
+                    video_watched = False
+                    severity = "MEDIUM"
+                    event_vector = f"Module {module_num} Video Incomplete (Gate Locked)"
+                    event_action = action_text or "Video Incomplete"
+                else:
+                    status_val = "IN_PROGRESS"
+                    video_watched = True
+                    severity = "LOW"
+                    event_vector = f"Module {module_num} Video 100% Watched (Gate Cleared)"
+                    event_action = action_text or "Video Completed 100%"
             elif is_login_event:
                 if not status_val:
                     status_val = "IN_PROGRESS"
                 event_vector = f"User Login Authentication: {student_name}"
-                event_action = data.get('action') or "Session Granted"
+                event_action = action_text or "Session Granted"
                 severity = "LOW"
             else:
-                # Handle Module / Quiz / Simulation Events
+                # Fallback handler
                 if not status_val:
-                    if not video_watched:
-                        status_val = "STUCK_VIDEO"
-                    elif quiz_score > 0 and quiz_score < 60:
-                        status_val = "FAILED"
-                    elif module_num >= 20 and quiz_score >= 60:
-                        status_val = "COMPLETED"
-                    else:
-                        status_val = "IN_PROGRESS"
-
+                    status_val = "IN_PROGRESS"
                 severity = "LOW"
-                if status_val == "FAILED":
-                    severity = "HIGH"
-                elif status_val == "STUCK_VIDEO":
-                    severity = "MEDIUM"
-
-                event_vector = data.get('threat_type') or data.get('vector') or f"Module {module_num} ({'Video 100%' if video_watched else 'Video Incomplete'}) - Quiz: {quiz_score}%"
-                event_action = data.get('defense_action') or data.get('action') or ("20/20 Completed" if status_val == "COMPLETED" else "Unlocked Next Module" if status_val == "IN_PROGRESS" else "Gate Locked")
+                event_vector = action_text or f"Training Activity: {student_name}"
+                event_action = action_text or "Recorded"
 
             stuck_reason = data.get('stuck_reason')
             if not stuck_reason:
